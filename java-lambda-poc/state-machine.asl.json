@@ -1,0 +1,70 @@
+{
+  "Comment": "CSV Processing Pipeline - Downloads CSV from S3, filters active rows, enriches with computed columns, and outputs JSON to S3",
+  "StartAt": "DownloadAndParse",
+  "States": {
+    "DownloadAndParse": {
+      "Type": "Task",
+      "Resource": "${DownloadHandlerArn}",
+      "Comment": "Downloads CSV from S3 and parses into rows",
+      "Next": "CheckDownloadStatus"
+    },
+    "CheckDownloadStatus": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "ERROR",
+          "Next": "ProcessingFailed"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "EMPTY",
+          "Next": "EmptyFile"
+        }
+      ],
+      "Default": "FilterRows"
+    },
+    "FilterRows": {
+      "Type": "Task",
+      "Resource": "${FilterHandlerArn}",
+      "Comment": "Filters rows to keep only status=active",
+      "Next": "EnrichRows"
+    },
+    "EnrichRows": {
+      "Type": "Task",
+      "Resource": "${EnrichHandlerArn}",
+      "Comment": "Adds computed total column (quantity * price)",
+      "Next": "WriteOutput"
+    },
+    "WriteOutput": {
+      "Type": "Task",
+      "Resource": "${OutputHandlerArn}",
+      "Comment": "Converts to JSON and uploads to output S3 bucket",
+      "Next": "CheckOutputStatus"
+    },
+    "CheckOutputStatus": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "ERROR",
+          "Next": "ProcessingFailed"
+        }
+      ],
+      "Default": "ProcessingComplete"
+    },
+    "ProcessingComplete": {
+      "Type": "Succeed",
+      "Comment": "CSV processing completed successfully"
+    },
+    "EmptyFile": {
+      "Type": "Succeed",
+      "Comment": "Input file was empty, nothing to process"
+    },
+    "ProcessingFailed": {
+      "Type": "Fail",
+      "Cause": "Processing step encountered an error",
+      "Error": "ProcessingError"
+    }
+  }
+}

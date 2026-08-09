@@ -27,6 +27,9 @@ dependencies {
     // AWS S3 SDK
     implementation("com.amazonaws:aws-java-sdk-s3:1.12.261")
 
+    // AWS Step Functions SDK
+    implementation("com.amazonaws:aws-java-sdk-stepfunctions:1.12.261")
+
     // CSV parsing
     implementation("com.opencsv:opencsv:5.9")
 

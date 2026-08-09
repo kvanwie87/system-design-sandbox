@@ -1,8 +1,8 @@
 @echo off
 REM ============================================================
-REM Send Sample Script (Windows)
+REM Send Sample Script (Windows - Step Functions version)
 REM Uploads sample CSV to LocalStack S3 input bucket, waits for
-REM Lambda processing, and displays the JSON output.
+REM the Step Functions pipeline to complete, and displays output.
 REM ============================================================
 
 setlocal
@@ -27,8 +27,20 @@ echo --- Uploading test CSV ---
 echo Uploaded: orders.csv
 
 echo.
-echo --- Waiting for Lambda to process (10 seconds) ---
-timeout /t 10 /nobreak >nul
+echo --- Waiting for Step Functions pipeline (up to 3 minutes, checking every 15s) ---
+set FOUND=0
+for /L %%i in (1,1,12) do (
+    if !FOUND!==0 (
+        timeout /t 15 /nobreak >nul
+        %AWS_CMD% s3 ls s3://%OUTPUT_BUCKET%/orders.json >nul 2>&1
+        if !ERRORLEVEL!==0 (
+            echo   Output detected!
+            set FOUND=1
+        ) else (
+            echo   Check %%i/12 - not ready yet...
+        )
+    )
+)
 
 echo.
 echo --- Checking output ---
