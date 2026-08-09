@@ -87,6 +87,10 @@ The fat JAR is output to: `build/libs/java-lambda-poc-all.jar`
 gradlew.bat test
 ```
 
+Tests cover:
+- **CsvProcessorServiceTest** — filters active rows, adds total column, handles empty/malformed CSVs, validates against sample data
+- **S3CsvProcessorHandlerTest** — mocks S3 client, verifies file download/upload, output key naming, error handling
+
 ## Project Structure
 
 ```
@@ -102,13 +106,14 @@ java-lambda-poc/
 │   ├── localstack-setup.bat      # Same for Windows
 │   ├── localstack-teardown.sh    # Removes all LocalStack resources
 │   ├── send-sample.sh            # Uploads sample CSV and checks output (Linux/macOS)
-│   ├── send-sample.bat           # Same for Windows
-│   ├── test-local.sh             # Local test runner (Linux/macOS)
-│   └── test-local.bat            # Local test runner (Windows)
-└── src/main/java/com/example/lambda/
-    ├── S3CsvProcessorHandler.java  # Lambda handler (S3Event -> process -> S3)
-    ├── CsvProcessorService.java    # Core CSV processing logic
-    └── LocalTestRunner.java        # CLI tool for local testing
+│   └── send-sample.bat           # Same for Windows
+└── src/
+    ├── main/java/com/example/lambda/
+    │   ├── S3CsvProcessorHandler.java  # Lambda handler (S3Event -> process -> S3)
+    │   └── CsvProcessorService.java    # Core CSV processing logic
+    └── test/java/com/example/lambda/
+        ├── CsvProcessorServiceTest.java  # Unit tests for CSV processing
+        └── S3CsvProcessorHandlerTest.java # Unit tests for Lambda handler
 ```
 
 ## Local Testing with LocalStack
@@ -274,20 +279,6 @@ aws --endpoint-url=http://localhost:4566 s3 rm s3://csv-output-bucket --recursiv
 aws --endpoint-url=http://localhost:4566 s3 rb s3://csv-output-bucket
 docker-compose down
 ```
-
-### Option C: Local test without S3 (fastest)
-
-To test just the CSV processing logic without any AWS infrastructure:
-
-```bash
-# Linux/macOS
-./scripts/test-local.sh
-
-# Windows
-scripts\test-local.bat
-```
-
-This builds the JAR and runs `LocalTestRunner` against `sample-data/orders.csv`, writing output to `build/test-output.json`.
 
 ## AWS Console Setup
 

@@ -1,0 +1,11 @@
+id,product,quantity,status,price
+1,Widget A,10,active,5.99
+2,Widget B,3,inactive,12.50
+3,Gadget C,7,active,8.75
+4,Doohickey D,1,inactive,25.00
+5,Thingamajig E,5,active,3.50
+6,Gizmo F,20,active,2.25
+7,Widget G,2,inactive,15.00
+8,Gadget H,12,active,6.00
+9,Doohickey I,4,inactive,9.99
+10,Thingamajig J,8,active,4.50
