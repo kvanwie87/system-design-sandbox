@@ -4,7 +4,12 @@
   "States": {
     "DownloadAndParse": {
       "Type": "Task",
-      "Resource": "${DownloadHandlerArn}",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${DownloadHandlerArn}",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
       "Comment": "Downloads CSV from S3 and parses into rows",
       "Next": "CheckDownloadStatus"
     },
@@ -26,19 +31,34 @@
     },
     "FilterRows": {
       "Type": "Task",
-      "Resource": "${FilterHandlerArn}",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${FilterHandlerArn}",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
       "Comment": "Filters rows to keep only status=active",
       "Next": "EnrichRows"
     },
     "EnrichRows": {
       "Type": "Task",
-      "Resource": "${EnrichHandlerArn}",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${EnrichHandlerArn}",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
       "Comment": "Adds computed total column (quantity * price)",
       "Next": "WriteOutput"
     },
     "WriteOutput": {
       "Type": "Task",
-      "Resource": "${OutputHandlerArn}",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${OutputHandlerArn}",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
       "Comment": "Converts to JSON and uploads to output S3 bucket",
       "Next": "CheckOutputStatus"
     },

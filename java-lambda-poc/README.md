@@ -414,6 +414,15 @@ You need two IAM roles: one for Lambda functions and one for the Step Functions 
       "Effect": "Allow",
       "Action": ["states:StartExecution"],
       "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:*:*:*"
     }
   ]
 }
@@ -426,6 +435,33 @@ You need two IAM roles: one for Lambda functions and one for the Step Functions 
 1. Click **Create role** → **AWS service** → **Step Functions** → **Next**
 2. Attach: `AWSLambdaRole` (allows invoking Lambda functions)
 3. Name: `stepfunctions-csv-pipeline-role` → **Create role**
+4. Open the role → **Add permissions** → **Create inline policy** → JSON:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogDelivery",
+        "logs:CreateLogStream",
+        "logs:GetLogDelivery",
+        "logs:UpdateLogDelivery",
+        "logs:DeleteLogDelivery",
+        "logs:ListLogDeliveries",
+        "logs:PutLogEvents",
+        "logs:PutResourcePolicy",
+        "logs:DescribeResourcePolicies",
+        "logs:DescribeLogGroups"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+5. Name: `stepfunctions-logging` → **Create policy**
 
 ### Step 3: Create the Lambda Functions
 
