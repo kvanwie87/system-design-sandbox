@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: java-websocket-poc-server
+
+server:
+  port: 8080
