@@ -1,0 +1,26 @@
+package com.example.webhookclient.config;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Jackson configuration for JSON deserialization of incoming webhook events.
+ * <p>
+ * Registers the JavaTimeModule so that {@link java.time.Instant} timestamps
+ * in event payloads are correctly deserialized from ISO-8601 strings.
+ */
+@Configuration
+public class JacksonConfig {
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        // Expect dates as ISO-8601 strings (matching the server's output format)
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
+}

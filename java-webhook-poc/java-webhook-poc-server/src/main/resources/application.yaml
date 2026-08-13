@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: webhook-server
+
+server:
+  port: 8080
+
+webhook:
+  event:
+    interval: 5000
+  secret: my-super-secret-webhook-key-change-me
+  circuit-breaker:
+    max-failures: 3
+    degraded-timeout: 30000
+    suspended-timeout: 60000
+    check-interval: 10000

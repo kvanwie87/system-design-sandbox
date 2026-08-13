@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: webhook-client
+
+server:
+  port: 8081
+
+webhook:
+  server:
+    url: http://localhost:8080
+  secret: my-super-secret-webhook-key-change-me
