@@ -1,0 +1,5 @@
+rootProject.name = 'java-kafka-poc'
+
+include 'common-avro'
+include 'sensor-ingest'
+include 'telemetry-processor'

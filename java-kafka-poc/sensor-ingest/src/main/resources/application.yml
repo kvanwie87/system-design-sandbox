@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sensor-ingest
+
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      transaction-id-prefix: sensor-ingest-tx-
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    properties:
+      schema.registry.url: http://localhost:8081
+
+logging:
+  level:
+    com.example.telemetry: INFO
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId:-}] - %msg%n"

@@ -1,0 +1,41 @@
+{
+  "type": "record",
+  "name": "SensorReading",
+  "namespace": "com.example.telemetry.avro",
+  "fields": [
+    {
+      "name": "sensorId",
+      "type": "string",
+      "doc": "Unique identifier for the sensor"
+    },
+    {
+      "name": "temperature",
+      "type": "double",
+      "doc": "Temperature reading in Celsius"
+    },
+    {
+      "name": "humidity",
+      "type": "double",
+      "doc": "Relative humidity percentage (0-100)"
+    },
+    {
+      "name": "timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Epoch millis when reading was captured"
+    },
+    {
+      "name": "location",
+      "type": "string",
+      "doc": "Physical location of the sensor"
+    },
+    {
+      "name": "batteryLevel",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Battery level percentage (0-100), null if sensor is wired"
+    }
+  ]
+}
