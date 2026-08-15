@@ -1,0 +1,1 @@
+// custom-threading module — uses custom @MyAsync and @MyScheduled with hand-rolled BeanPostProcessors

@@ -1,0 +1,4 @@
+rootProject.name = 'java-multi-thread-poc'
+
+include 'spring-threading'
+include 'custom-threading'
