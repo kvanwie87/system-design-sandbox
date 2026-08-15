@@ -1,0 +1,5 @@
+rootProject.name = 'spring-boot-concurrency-concerns-poc'
+
+include 'common-api'
+include 'concurrency-broken'
+include 'concurrency-fixed'
