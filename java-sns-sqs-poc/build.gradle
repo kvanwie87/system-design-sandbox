@@ -1,0 +1,51 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // AWS SDK v2 BOM for consistent versioning
+    implementation platform('software.amazon.awssdk:bom:2.25.60')
+
+    // AWS SDK v2 service clients
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:sns'
+
+    // AWS Lambda runtime
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.11.6'
+
+    // Required by Lambda runtime's S3 event deserializer (provides S3EventNotification class)
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.772'
+
+    // JSON serialization
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+
+    // Testing
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+shadowJar {
+    archiveBaseName.set('csv-processor-lambda')
+    archiveClassifier.set('all')
+    archiveVersion.set('')
+}
