@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: inventory-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ecommerce?currentSchema=inventory_schema
+    username: ecommerce
+    password: ecommerce
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: inventory_schema
+  docker:
+    compose:
+      lifecycle-management: start-only
+      file: ../compose.yaml
+
+server:
+  port: 8085
+
+inventory:
+  reservation-ttl-minutes: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

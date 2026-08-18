@@ -1,0 +1,6 @@
+// Plain Java library - no Spring Boot plugin applied
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'jakarta.validation:jakarta.validation-api'
+}

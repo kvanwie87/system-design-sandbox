@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ecommerce?currentSchema=payment_schema
+    username: ecommerce
+    password: ecommerce
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: payment_schema
+  docker:
+    compose:
+      lifecycle-management: start-only
+      file: ../compose.yaml
+
+server:
+  port: 8086
+
+payment:
+  mock:
+    failure-rate: 0
+    latency-ms: 100
+    fail-card-suffix: "0000"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

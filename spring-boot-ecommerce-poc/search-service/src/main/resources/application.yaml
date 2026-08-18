@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: search-service
+  elasticsearch:
+    uris: http://localhost:9200
+  kafka:
+    bootstrap-servers: localhost:19092
+    consumer:
+      group-id: search-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.common.*
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  docker:
+    compose:
+      lifecycle-management: start-only
+      file: ../compose.yaml
+
+server:
+  port: 8082
+
+product-service:
+  url: http://localhost:8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

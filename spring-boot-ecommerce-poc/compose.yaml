@@ -1,0 +1,203 @@
+services:
+  # ===== Infrastructure (always started) =====
+  postgres:
+    image: postgres:16
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce -d ecommerce"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: ecommerce-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    container_name: ecommerce-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: ecommerce-kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:19092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "19092:19092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ===== Application Services (profile: apps) =====
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    container_name: ecommerce-product-service
+    profiles: ["apps"]
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=product_schema
+      SPRING_DATASOURCE_USERNAME: ecommerce
+      SPRING_DATASOURCE_PASSWORD: ecommerce
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
+    container_name: ecommerce-inventory-service
+    profiles: ["apps"]
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=inventory_schema
+      SPRING_DATASOURCE_USERNAME: ecommerce
+      SPRING_DATASOURCE_PASSWORD: ecommerce
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    container_name: ecommerce-payment-service
+    profiles: ["apps"]
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=payment_schema
+      SPRING_DATASOURCE_USERNAME: ecommerce
+      SPRING_DATASOURCE_PASSWORD: ecommerce
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cart-service:
+    build:
+      context: .
+      dockerfile: cart-service/Dockerfile
+    container_name: ecommerce-cart-service
+    profiles: ["apps"]
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      INVENTORY_SERVICE_URL: http://inventory-service:8085
+    depends_on:
+      redis:
+        condition: service_healthy
+      inventory-service:
+        condition: service_started
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    container_name: ecommerce-order-service
+    profiles: ["apps"]
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=order_schema
+      SPRING_DATASOURCE_USERNAME: ecommerce
+      SPRING_DATASOURCE_PASSWORD: ecommerce
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      CART_SERVICE_URL: http://cart-service:8083
+      INVENTORY_SERVICE_URL: http://inventory-service:8085
+      PAYMENT_SERVICE_URL: http://payment-service:8086
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      cart-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+
+  search-service:
+    build:
+      context: .
+      dockerfile: search-service/Dockerfile
+    container_name: ecommerce-search-service
+    profiles: ["apps"]
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      PRODUCT_SERVICE_URL: http://product-service:8081
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  redis-data:
+  elasticsearch-data:
