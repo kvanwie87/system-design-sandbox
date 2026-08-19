@@ -13,19 +13,22 @@ MongoDB is a general-purpose, document-oriented NoSQL database. Instead of stori
 - **Replication** — Replica sets provide automatic failover and data redundancy with tunable read/write concerns.
 - **Flexible indexing** — Compound, multikey (array), text, geospatial, hashed, and TTL indexes.
 - **ACID transactions** — Multi-document transactions supported since v4.0 (single-document operations have always been atomic).
+- **Tunable consistency** — Reads from the primary are strongly consistent by default. Reads from secondaries are eventually consistent. Write concern and read concern settings let you trade off latency vs durability per operation.
+- **16MB document limit** — Individual documents are capped at 16MB (BSON). For larger payloads, use GridFS or reference patterns. This matters for use cases where documents could grow unboundedly (e.g., arrays that accumulate over time).
 
 ## Comparisons to Other Datastores
 
-| Aspect | MongoDB | PostgreSQL (Relational) | DynamoDB (Key-Value/Doc) | Cassandra (Wide-Column) |
-|--------|---------|------------------------|--------------------------|------------------------|
-| Data model | Nested documents | Normalized tables | Flat documents / key-value | Wide-column families |
-| Schema | Flexible (schema-on-read) | Rigid (schema-on-write) | Schemaless (per-item) | Schema-per-table |
-| Query flexibility | Rich queries, aggregations | Full SQL, joins, CTEs | Limited (partition/sort key) | Limited (partition key required) |
-| Scaling model | Horizontal (sharding) | Primarily vertical | Horizontal (managed) | Horizontal (ring-based) |
-| Joins | Embedded docs, `$lookup` | Native joins | Not supported | Not supported |
-| Transactions | Multi-document ACID | Full ACID | Limited (single-item or 25-item batch) | Lightweight transactions only |
-| Operational model | Self-managed or Atlas (managed) | Self-managed or managed (RDS, etc.) | Fully managed (AWS) | Self-managed or managed |
-| Best for | Flexible, evolving schemas with complex queries | Relational data with complex joins and strong consistency | High-throughput key-based access at massive scale | Write-heavy time-series, append-only workloads |
+| Aspect | MongoDB | PostgreSQL (Relational) | DynamoDB (Key-Value/Doc) | Cassandra (Wide-Column) | Redis (In-Memory) |
+|--------|---------|------------------------|--------------------------|------------------------|-------------------|
+| Data model | Nested documents | Normalized tables | Flat documents / key-value | Wide-column families | Key-value, hashes, lists, sets |
+| Schema | Flexible (schema-on-read) | Rigid (schema-on-write) | Schemaless (per-item) | Schema-per-table | Schemaless |
+| Query flexibility | Rich queries, aggregations | Full SQL, joins, CTEs | Limited (partition/sort key) | Limited (partition key required) | Key-based only (no ad-hoc queries) |
+| Scaling model | Horizontal (sharding) | Primarily vertical | Horizontal (managed) | Horizontal (ring-based) | Horizontal (Redis Cluster) |
+| Joins | Embedded docs, `$lookup` | Native joins | Not supported | Not supported | Not supported |
+| Transactions | Multi-document ACID | Full ACID | Limited (single-item or 25-item batch) | Lightweight transactions only | Optimistic (WATCH/MULTI) |
+| Persistence | Disk-based with memory-mapped I/O | Disk-based (WAL) | Managed (transparent) | Disk-based (LSM trees) | In-memory (optional disk persistence) |
+| Operational model | Self-managed or Atlas (managed) | Self-managed or managed (RDS, etc.) | Fully managed (AWS) | Self-managed or managed | Self-managed or managed (ElastiCache, etc.) |
+| Best for | Flexible, evolving schemas with complex queries | Relational data with complex joins and strong consistency | High-throughput key-based access at massive scale | Write-heavy time-series, append-only workloads | Sub-ms caching, sessions, ephemeral data |
 
 ## Sample Data Models
 
