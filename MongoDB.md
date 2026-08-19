@@ -176,30 +176,26 @@ Relational databases would require either a wide table full of nullable columns 
 **Why MongoDB over a relational DB:**
 A relational schema would need per-category tables or an attribute table with generic key-value rows, making queries awkward. MongoDB lets each product document carry its own category-specific attributes while still supporting indexed queries across all products (e.g., filter by price, search by name).
 
-### 3. Real-Time Analytics Dashboard
+### 3. Mobile / Gaming — Player Profiles and Game State
 
-**Scenario:** An IoT platform ingests sensor events with varying payloads (temperature, humidity, vibration) and serves dashboards with aggregated views.
+**Scenario:** A multiplayer game stores player profiles containing inventory, achievements, skill trees, match history, and per-game settings. Each game mode may add unique fields to the profile.
 
-**Why MongoDB over Cassandra:**
-Both handle high write throughput, but MongoDB's aggregation pipeline makes it straightforward to compute rollups, percentiles, and time-bucketed summaries without a separate analytics layer. Cassandra would require pre-computed materialized views or an external tool (Spark) for ad-hoc aggregations.
+**Why MongoDB over a relational DB:**
+Game state is deeply nested and varies between game modes — a battle royale profile looks nothing like a racing profile. A relational schema would require dozens of join tables or a rigid EAV model. MongoDB stores the entire player state as a single document, enabling fast reads (one query fetches everything needed to load a session) and atomic updates to nested fields. The flexible schema also means new game features can add fields without database migrations or downtime.
 
-### 4. User Profile / Personalization Service
+### 4. Single View / Data Aggregation
 
-**Scenario:** A SaaS platform stores user profiles with preferences, feature flags, notification settings, and activity history — all read together in a single API call.
+**Scenario:** A financial institution merges customer data from multiple upstream systems — CRM, billing, support tickets, loan applications, KYC records — into one unified "360-degree customer view" for support agents.
 
-**Why MongoDB over DynamoDB:**
-DynamoDB excels at single-key lookups but becomes cumbersome when you need to query across multiple attributes or run aggregations (e.g., "find all users who enabled feature X in the last 30 days"). MongoDB supports secondary indexes and expressive queries on any field without redesigning access patterns upfront.
+**Why MongoDB over a relational DB:**
+Each upstream system has its own schema, and the combined view is deeply nested and heterogeneous. Modeling this in a relational database means either a massive normalized schema with dozens of joins per query, or an ETL pipeline into a data warehouse that introduces latency. MongoDB serves as the aggregation layer: each customer gets a single rich document that embeds data from all sources. Reads are fast (no joins), and the flexible schema accommodates new upstream sources without restructuring existing data.
 
-### 5. Activity Feeds
+### 5. Real-Time Personalization and Recommendations
 
-**Scenario:** A social platform stores activity events (posts, likes, comments, shares) and renders personalized feeds in real time.
+**Scenario:** An e-commerce or streaming platform serves personalized recommendations by reading a user's context document — browsing history, purchase patterns, demographic signals, A/B test assignments, and feature flags — at low latency during every page load.
 
-**Why MongoDB over PostgreSQL:**
-Events have varying shapes (a "like" event differs from a "share" event). Embedding related context (author info, preview data) into each event document avoids expensive joins at read time. MongoDB's flexible schema accommodates new event types without migrations, and its change streams enable real-time feed updates pushed to clients.
-
-PostgreSQL can handle polymorphic events via JSONB columns and offers LISTEN/NOTIFY for basic change notification, but MongoDB's change streams are more capable for tailing updates across collections at scale. The document model also avoids the impedance mismatch of storing variably-shaped events in a relational schema.
-
-**Note:** This use case is about serving read-optimized activity feeds, not true event sourcing (append-only logs replayed to rebuild state). For that pattern, a dedicated event store or Kafka is typically a better fit.
+**Why MongoDB over DynamoDB or Redis:**
+The context document is complex and queried by multiple attributes (e.g., "users in segment X who viewed category Y in the last 7 days" for batch model training). Redis is fast but lacks rich querying. DynamoDB requires pre-designed access patterns and GSIs for each query shape. MongoDB combines low-latency single-document reads (serving the recommendation engine) with expressive queries and aggregation (feeding the ML pipeline that updates recommendations), all on the same store.
 
 > **A note on polyglot persistence:** These use cases compare MongoDB against a single alternative for clarity, but production systems often use multiple databases together — MongoDB for the catalog, PostgreSQL for payments, Redis for sessions, Elasticsearch for search, etc. The right question isn't "which one database?" but "where does each database fit best?" Choose the simplest stack that serves your access patterns, and add stores only when a workload clearly outgrows what you have.
 
