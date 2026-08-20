@@ -36,12 +36,12 @@ src/
 
 | File | Content |
 |------|---------|
-| [Java-Interview-Exercises.md](Java-Interview-Exercises.md) | All 50 exercises with starter code |
-| [Answers-01-10.md](Answers-01-10.md) | Solutions for exercises 1–10 |
-| [Answers-11-20.md](Answers-11-20.md) | Solutions for exercises 11–20 |
-| [Answers-21-30.md](Answers-21-30.md) | Solutions for exercises 21–30 |
-| [Answers-31-40.md](Answers-31-40.md) | Solutions for exercises 31–40 |
-| [Answers-41-50.md](Answers-41-50.md) | Solutions for exercises 41–50 |
+| [Java-Interview-Exercises.md](docs/Java-Interview-Exercises.md) | All 50 exercises with starter code |
+| [Answers-01-10.md](docs/Answers-01-10.md) | Solutions for exercises 1–10 |
+| [Answers-11-20.md](docs/Answers-11-20.md) | Solutions for exercises 11–20 |
+| [Answers-21-30.md](docs/Answers-21-30.md) | Solutions for exercises 21–30 |
+| [Answers-31-40.md](docs/Answers-31-40.md) | Solutions for exercises 31–40 |
+| [Answers-41-50.md](docs/Answers-41-50.md) | Solutions for exercises 41–50 |
 
 ## Topics Covered
 
@@ -54,7 +54,7 @@ src/
 
 ## How to Use
 
-1. Read the exercise in [Java-Interview-Exercises.md](Java-Interview-Exercises.md)
+1. Read the exercise in [Java-Interview-Exercises.md](docs/Java-Interview-Exercises.md)
 2. Implement your solution in the appropriate `src/main/java/exercises/tierN/` package
 3. Write a test in `src/test/java/exercises/tierN/`
 4. Run `./gradlew test` to verify
