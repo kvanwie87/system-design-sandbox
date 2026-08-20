@@ -8,22 +8,49 @@ Programming exercises aligned with the most common core Java interview topics, o
 
 ---
 
-### Exercise 1. HashMap Internals — Custom Key
+### Exercise 1. HashMap Internals — Custom Key & Immutability
 
-**Concept:** How `hashCode()` and `equals()` contract works. What happens when you use a mutable key.
+**Concept:** How `hashCode()` and `equals()` contract works. What happens when you use a mutable key. How immutability fixes it.
 
-**Exercise:** Create a `Person` class (with `name` and `age`) to use as a HashMap key. Demonstrate:
+**Exercise:** Create a `Person` class (with `name`, `age`, and `List<String> nicknames`) to use as a HashMap key. Demonstrate:
 1. Correct implementation of `hashCode()` and `equals()`
 2. What breaks when you mutate a key after insertion
 3. What breaks when `hashCode()` always returns the same value (bucket collision)
+4. Fix the mutable key problem by creating an `ImmutablePerson` class:
+   - All fields `private final`
+   - No setters
+   - Class is `final` (prevent subclass breaking invariants)
+   - Defensive copy of mutable fields in constructor (`List.copyOf`)
+   - Return unmodifiable views from getters
+   - Show how `record` achieves the same thing automatically
 
 ```java
+// Mutable version (broken as a key)
 public class Person {
     private String name;
     private int age;
+    private List<String> nicknames;
+}
 
-    // Implement equals() and hashCode()
-    // Demonstrate the three scenarios in a main method
+// Immutable version (safe as a key)
+public final class ImmutablePerson {
+    private final String name;
+    private final int age;
+    private final List<String> nicknames;
+
+    public ImmutablePerson(String name, int age, List<String> nicknames) {
+        this.name = name;
+        this.age = age;
+        this.nicknames = List.copyOf(nicknames); // defensive copy
+    }
+    // Getters only, no setters
+}
+
+// Record version (immutable by default)
+public record PersonRecord(String name, int age, List<String> nicknames) {
+    public PersonRecord {
+        nicknames = List.copyOf(nicknames); // compact constructor for defensive copy
+    }
 }
 ```
 

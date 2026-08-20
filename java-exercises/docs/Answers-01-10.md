@@ -4,10 +4,11 @@ Solutions for each exercise in [Java-Interview-Exercises.md](Java-Interview-Exer
 
 ---
 
-## Exercise 1. HashMap Internals — Custom Key
+## Exercise 1. HashMap Internals — Custom Key & Immutability
 
 ```java
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -57,11 +58,97 @@ public class Person {
 }
 ```
 
+### Part 4: Fix with Immutability
+
+```java
+import java.util.List;
+import java.util.Objects;
+
+// Immutable version — safe as a HashMap key
+public final class ImmutablePerson {
+    private final String name;
+    private final int age;
+    private final List<String> nicknames;
+
+    public ImmutablePerson(String name, int age, List<String> nicknames) {
+        this.name = name;
+        this.age = age;
+        this.nicknames = List.copyOf(nicknames); // Defensive copy — caller can't mutate our list
+    }
+
+    public String getName() { return name; }
+    public int getAge() { return age; }
+    public List<String> getNicknames() { return nicknames; } // Already unmodifiable (List.copyOf)
+
+    // No setters — object cannot be modified after construction
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ImmutablePerson that = (ImmutablePerson) o;
+        return age == that.age
+            && Objects.equals(name, that.name)
+            && Objects.equals(nicknames, that.nicknames);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age, nicknames);
+    }
+
+    public static void main(String[] args) {
+        List<String> nicks = new java.util.ArrayList<>(List.of("Al", "Ally"));
+        ImmutablePerson person = new ImmutablePerson("Alice", 30, nicks);
+
+        // Caller's list mutation doesn't affect the immutable object
+        nicks.add("Hacked!");
+        System.out.println(person.getNicknames()); // [Al, Ally] — safe
+
+        // Getter returns unmodifiable list
+        try {
+            person.getNicknames().add("Nope");
+        } catch (UnsupportedOperationException e) {
+            System.out.println("Cannot modify — list is unmodifiable");
+        }
+
+        // Safe as a HashMap key — no way to change fields after construction
+        Map<ImmutablePerson, String> map = new java.util.HashMap<>();
+        map.put(person, "Engineer");
+        System.out.println(map.get(new ImmutablePerson("Alice", 30, List.of("Al", "Ally")))); // "Engineer"
+    }
+}
+```
+
+### Record Version (Immutable by Default)
+
+```java
+import java.util.List;
+
+// Records are final, fields are private final, getters auto-generated
+// But mutable fields (like List) still need a defensive copy!
+public record PersonRecord(String name, int age, List<String> nicknames) {
+    // Compact constructor: validates and defensively copies
+    public PersonRecord {
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name required");
+        nicknames = List.copyOf(nicknames); // defensive copy
+    }
+}
+```
+
 **Key points:**
 - `equals()` and `hashCode()` must be consistent: if `a.equals(b)` then `a.hashCode() == b.hashCode()`
 - Never mutate fields used in `hashCode()` while the object is a map key
 - Constant hashCode is legal but destroys performance (O(n) instead of O(1))
 - Since Java 8, buckets with 8+ entries treeify (O(log n) instead of O(n))
+
+**Immutability checklist:**
+1. Class is `final` (prevents subclass from adding mutable state)
+2. All fields are `private final`
+3. No setters
+4. Defensive copy mutable arguments in constructor (`List.copyOf`, `new ArrayList<>(list)`)
+5. Don't expose mutable internals from getters (return copies or unmodifiable views)
+6. Records give you 1–3 automatically, but you still need 4–5 for mutable field types
 
 ---
 
