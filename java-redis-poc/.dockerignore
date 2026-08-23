@@ -1,0 +1,9 @@
+.git
+.gitignore
+.kiro
+.gradle
+build
+*.md
+.idea
+.vscode
+*.iml
