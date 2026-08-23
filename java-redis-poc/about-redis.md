@@ -63,6 +63,52 @@ TTL session:abc123                    # Returns remaining seconds
 PERSIST session:abc123                # Remove the expiration
 ```
 
+#### Key Hashing (Redis Cluster)
+
+In a single Redis instance, all keys live on one server. In a Redis Cluster (multiple nodes), keys are distributed across 16,384 **hash slots** using CRC16:
+
+```
+slot = CRC16(key) % 16384
+```
+
+Each node in the cluster owns a range of slots. When you issue a command, Redis hashes the key to determine which node holds it.
+
+**Hash Tags** — forcing related keys to the same slot:
+
+By default, the entire key is hashed. If you need multiple keys on the same node (for multi-key operations like `SINTER`, `SUNION`, or transactions), use hash tags — the part between `{` and `}`:
+
+```
+user:{1001}:profile    → hashes "1001"
+user:{1001}:sessions   → hashes "1001"  (same slot!)
+user:{1001}:cart       → hashes "1001"  (same slot!)
+
+user:{2002}:profile    → hashes "2002"  (different slot)
+```
+
+Only the substring inside `{}` is used for slot calculation, so all keys sharing the same hash tag land on the same node.
+
+**Why this matters:**
+- Multi-key commands (`MGET`, `SINTER`, `SDIFF`, `SUNION`) only work when all keys are on the same node
+- Transactions (`MULTI/EXEC`) and Lua scripts can only operate on keys in the same slot
+- Without hash tags, related keys may scatter across nodes, breaking these operations
+
+**Example — our PoC keys in a cluster context:**
+```
+# These would need hash tags to work together in a cluster:
+tags:{alice}           → all of alice's tag operations on one node
+session:{abc123}       → session operations are already safe (single key)
+leaderboard            → single key, always on one node
+
+# If you needed to compare two users' tags:
+tags:{alice}   and   tags:{bob}   → different slots! SINTER would fail in cluster mode
+```
+
+**Best practices for cluster-ready keys:**
+- Use hash tags when you need multi-key operations on related data
+- Keep hash tags consistent within a logical group
+- Avoid putting all keys in one hash tag (defeats the purpose of sharding)
+- Single-key operations (GET, SET, HGETALL) work fine without hash tags
+
 #### Key Scanning and Pattern Matching
 - `KEYS pattern` — Find all keys matching a glob pattern (blocking, avoid in production)
 - `SCAN cursor [MATCH pattern] [COUNT hint]` — Iterative, non-blocking key scanning
