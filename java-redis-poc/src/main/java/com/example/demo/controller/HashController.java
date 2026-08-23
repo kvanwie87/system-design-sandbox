@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.service.HashService;
 
+/**
+ * Demonstrates Redis Hash operations through a user profile use case.
+ * Each user profile is stored as a Redis Hash where:
+ * - Key: user:{userId}
+ * - Fields: name, email, age, etc.
+ */
 @RestController
 @RequestMapping("/api/hashes")
 public class HashController {
@@ -23,26 +29,60 @@ public class HashController {
         this.hashService = hashService;
     }
 
-    @PutMapping("/{key}/{field}")
-    public ResponseEntity<Void> putField(@PathVariable String key, @PathVariable String field,
-                                         @RequestBody String value) {
-        hashService.putField(key, field, value);
+    /**
+     * Create or replace a user profile with all fields at once.
+     * Example: PUT /api/hashes/users/1001 {"name":"Alice","email":"alice@example.com","age":"30"}
+     */
+    @PutMapping("/users/{userId}")
+    public ResponseEntity<Void> saveProfile(@PathVariable String userId,
+                                            @RequestBody Map<String, String> fields) {
+        hashService.saveProfile(userId, fields);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{key}")
-    public ResponseEntity<Map<Object, Object>> getAll(@PathVariable String key) {
-        return ResponseEntity.ok(hashService.getAll(key));
+    /**
+     * Update a single field of a user profile.
+     * Example: PUT /api/hashes/users/1001/email with body "newemail@example.com"
+     */
+    @PutMapping("/users/{userId}/{field}")
+    public ResponseEntity<Void> updateField(@PathVariable String userId,
+                                            @PathVariable String field,
+                                            @RequestBody String value) {
+        hashService.updateField(userId, field, value);
+        return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{key}/{field}")
-    public ResponseEntity<Object> getField(@PathVariable String key, @PathVariable String field) {
-        return ResponseEntity.ok(hashService.getField(key, field));
+    /**
+     * Get all fields of a user profile (HGETALL).
+     */
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<Map<Object, Object>> getProfile(@PathVariable String userId) {
+        return ResponseEntity.ok(hashService.getProfile(userId));
     }
 
-    @DeleteMapping("/{key}/{field}")
-    public ResponseEntity<Void> deleteField(@PathVariable String key, @PathVariable String field) {
-        hashService.deleteField(key, field);
+    /**
+     * Get a single field of a user profile (HGET).
+     */
+    @GetMapping("/users/{userId}/{field}")
+    public ResponseEntity<Object> getField(@PathVariable String userId, @PathVariable String field) {
+        return ResponseEntity.ok(hashService.getField(userId, field));
+    }
+
+    /**
+     * Delete a single field from a user profile (HDEL).
+     */
+    @DeleteMapping("/users/{userId}/{field}")
+    public ResponseEntity<Void> deleteField(@PathVariable String userId, @PathVariable String field) {
+        hashService.deleteField(userId, field);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Delete an entire user profile (DEL).
+     */
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Void> deleteProfile(@PathVariable String userId) {
+        hashService.deleteProfile(userId);
         return ResponseEntity.ok().build();
     }
 }

@@ -13,6 +13,78 @@ Unlike traditional databases that store data on disk and load it into memory for
 - Optional persistence to disk via RDB snapshots or AOF (Append Only File) logs
 - Configurable eviction policies when memory limits are reached (LRU, LFU, random, TTL-based)
 
+### Keys
+
+Everything in Redis is accessed through a key. Understanding key design is fundamental to using Redis effectively.
+
+#### Key Properties
+- Keys are binary-safe — any binary sequence works, from a simple string like `"user:1"` to the contents of a JPEG file
+- Maximum key size is 512MB (but keep them short in practice)
+- Empty strings are valid keys
+
+#### Key Naming Conventions
+The Redis community follows a colon-separated naming convention to create a natural namespace hierarchy:
+
+```
+object-type:id:field
+```
+
+Examples:
+```
+user:1001:profile          # Hash storing user 1001's profile
+user:1001:sessions         # Set of active session IDs for user 1001
+order:20240115:items       # List of items in an order
+rate_limit:api-key-xyz     # Counter for rate limiting
+cache:product:sku-123      # Cached product data
+session:abc123             # Session attributes
+leaderboard:weekly         # Sorted set for weekly rankings
+```
+
+#### Key Design Best Practices
+
+| Practice | Good | Avoid |
+|----------|------|-------|
+| Use colons as separators | `user:1001:email` | `user_1001_email` or `user.1001.email` |
+| Keep keys reasonably short | `u:1001:e` (if millions of keys) | `the-user-with-id-1001-email-address` |
+| Include the object type | `comment:4321:votes` | `4321:votes` |
+| Use consistent casing | `user:1001` | mixing `User:1001` and `user:1001` |
+| Avoid very long keys | 100–200 bytes typical | Multi-KB keys waste memory and bandwidth |
+
+#### Key Expiration (TTL)
+- Any key can have an expiration set via `EXPIRE`, `PEXPIRE`, `EXPIREAT`, or as part of `SET` (`EX`/`PX` options)
+- Check remaining TTL with `TTL` (seconds) or `PTTL` (milliseconds)
+- Remove expiration with `PERSIST`
+- `-1` from TTL means no expiration set; `-2` means the key doesn't exist
+
+```
+SET session:abc123 "data" EX 3600     # Expires in 1 hour
+EXPIRE user:1001:cache 300            # Expire existing key in 5 minutes
+TTL session:abc123                    # Returns remaining seconds
+PERSIST session:abc123                # Remove the expiration
+```
+
+#### Key Scanning and Pattern Matching
+- `KEYS pattern` — Find all keys matching a glob pattern (blocking, avoid in production)
+- `SCAN cursor [MATCH pattern] [COUNT hint]` — Iterative, non-blocking key scanning
+- Patterns support `*` (any chars), `?` (single char), `[abc]` (character class)
+
+```
+SCAN 0 MATCH user:*:profile COUNT 100    # Iterate user profiles
+SCAN 0 MATCH cache:product:*             # Find all cached products
+```
+
+#### Key Space Notifications
+Redis can publish events when keys are modified or expired. Enable via config:
+```
+CONFIG SET notify-keyspace-events KEA
+```
+Clients can subscribe to channels like `__keyevent@0__:expired` to react when keys expire — useful for session timeouts, cache invalidation cascades, or delayed job processing.
+
+#### Memory Considerations
+- Each key has overhead beyond its name and value (~50–70 bytes per key for metadata)
+- Millions of short-lived keys are fine — Redis handles key creation/deletion efficiently
+- For very large key counts, consider using Hashes to group related small values (memory optimization via ziplist encoding)
+
 ### Rich Data Structures
 Redis is not a simple key-value store. It supports first-class data structures:
 

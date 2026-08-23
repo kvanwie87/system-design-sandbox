@@ -21,7 +21,7 @@ This project showcases 10 Redis use cases across 28 REST endpoints, all runnable
 | Feature | Endpoint | Pattern |
 |---------|----------|---------|
 | Caching | `/api/cache` | Spring @Cacheable / @CacheEvict with Redis backing |
-| Session Store | `/api/sessions` | Hash-backed sessions with TTL expiration |
+| Session Store | `/api/sessions` | Login/logout with auto-generated IDs and sliding TTL |
 | Pub/Sub | `/api/pubsub` | Publish messages, subscribe via listener, retrieve |
 | Rate Limiting | `/api/rate-limit` | Atomic increment with key expiration |
 | Leaderboard | `/api/leaderboard` | Sorted Set rankings with atomic score updates |
@@ -88,14 +88,24 @@ curl http://localhost:8080/api/strings/greeting
 curl -X DELETE http://localhost:8080/api/strings/greeting
 ```
 
-### Hashes
+### Hashes (User Profiles)
 ```bash
-# Store user fields
-curl -X PUT http://localhost:8080/api/hashes/user:1/name -d "Alice"
-curl -X PUT http://localhost:8080/api/hashes/user:1/email -d "alice@example.com"
+# Create a full user profile
+curl -X PUT http://localhost:8080/api/hashes/users/1001 \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice","email":"alice@example.com","age":"30"}'
 
-# Get all fields
-curl http://localhost:8080/api/hashes/user:1
+# Get full profile
+curl http://localhost:8080/api/hashes/users/1001
+
+# Get single field
+curl http://localhost:8080/api/hashes/users/1001/email
+
+# Update one field
+curl -X PUT http://localhost:8080/api/hashes/users/1001/email -d "new@example.com"
+
+# Delete a field
+curl -X DELETE http://localhost:8080/api/hashes/users/1001/age
 ```
 
 ### Lists
@@ -203,3 +213,25 @@ rate-limit:
 - [about-redis.md](about-redis.md) — Detailed Redis reference (data types, characteristics, use cases)
 - [Spring Data Redis docs](https://docs.spring.io/spring-data/redis/reference/)
 - [Redis commands reference](https://redis.io/commands/)
+
+## Redis Features Not Demonstrated
+
+This PoC covers the most common Redis use cases, but Redis offers additional capabilities not included here:
+
+| Feature | What it does | Typical use case |
+|---------|-------------|------------------|
+| **Streams** | Durable, append-only message log with consumer groups | Event sourcing, Kafka-lite messaging, multi-consumer processing |
+| **Distributed Locks** | SETNX + TTL for mutual exclusion across services | Preventing duplicate job execution, resource coordination |
+| **Transactions (MULTI/EXEC)** | Atomic execution of multiple commands as a batch | Ensuring consistency across related operations |
+| **Pipelining** | Batching multiple commands in a single network round-trip | Bulk writes, reducing latency on high-throughput paths |
+| **Geospatial** | Store lat/lng coordinates, query by radius | Location-based search, nearby places, delivery tracking |
+| **HyperLogLog** | Probabilistic cardinality estimation (~0.81% error) | Counting unique visitors at massive scale with fixed 12KB memory |
+| **Bitmaps** | Bit-level operations on strings | Daily active users, feature usage tracking, bloom filters |
+| **Lua Scripting** | Server-side scripts for custom atomic operations | Complex conditional logic that must execute atomically |
+
+See [about-redis.md](about-redis.md) for more detail on each of these.
+
+## Production Notes
+
+### Session Management
+This PoC demonstrates session storage using raw `RedisTemplate` operations to show what happens at the Redis level. In a production application, use [spring-session-data-redis](https://docs.spring.io/spring-session/reference/guides/boot-redis.html) instead — it integrates transparently with `HttpSession`, handles serialization, sliding expiration, and session events out of the box. Just add the dependency and annotate with `@EnableRedisHttpSession`.

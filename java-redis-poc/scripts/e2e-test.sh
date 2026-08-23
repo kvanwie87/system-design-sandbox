@@ -13,7 +13,11 @@ test_endpoint() {
   local data="$5"
 
   if [ -n "$data" ]; then
-    actual_code=$(curl -s -o /dev/null -w "%{http_code}" -X "$method" "$url" -H "Content-Type: text/plain" -d "$data")
+    content_type="text/plain"
+    case "$data" in
+      \{*|\[*) content_type="application/json" ;;
+    esac
+    actual_code=$(curl -s -o /dev/null -w "%{http_code}" -X "$method" "$url" -H "Content-Type: $content_type" -d "$data")
   else
     actual_code=$(curl -s -o /dev/null -w "%{http_code}" -X "$method" "$url")
   fi
@@ -30,52 +34,82 @@ test_endpoint() {
 echo "=== Redis PoC E2E Tests ==="
 echo ""
 
-# Strings
-test_endpoint "String PUT" PUT "$BASE_URL/api/strings/test-key" 200 "test-value"
-test_endpoint "String GET" GET "$BASE_URL/api/strings/test-key" 200
-test_endpoint "String DELETE" DELETE "$BASE_URL/api/strings/test-key" 200
-test_endpoint "String GET 404" GET "$BASE_URL/api/strings/nonexistent" 404
+# Strings (Feature Flags)
+test_endpoint "Flag SET" PUT "$BASE_URL/api/flags/dark-mode?value=true" 200
+test_endpoint "Flag SET with TTL" PUT "$BASE_URL/api/flags/promo-banner?value=Summer+Sale&ttlSeconds=86400" 200
+test_endpoint "Flag GET" GET "$BASE_URL/api/flags/dark-mode" 200
+test_endpoint "Flag SETNX (new)" POST "$BASE_URL/api/flags/beta-feature?value=false" 200
+test_endpoint "Flag SETNX (exists)" POST "$BASE_URL/api/flags/dark-mode?value=changed" 200
+test_endpoint "Flag TOGGLE" POST "$BASE_URL/api/flags/dark-mode/toggle" 200
+test_endpoint "Flag LIST" GET "$BASE_URL/api/flags" 200
+test_endpoint "Flag DELETE" DELETE "$BASE_URL/api/flags/promo-banner" 200
+test_endpoint "Flag GET 404" GET "$BASE_URL/api/flags/nonexistent" 404
 
-# Hashes
-test_endpoint "Hash PUT field" PUT "$BASE_URL/api/hashes/h1/name" 200 "Alice"
-test_endpoint "Hash GET all" GET "$BASE_URL/api/hashes/h1" 200
-test_endpoint "Hash GET field" GET "$BASE_URL/api/hashes/h1/name" 200
-test_endpoint "Hash DELETE field" DELETE "$BASE_URL/api/hashes/h1/name" 200
+# Hashes (User Profiles)
+test_endpoint "Hash PUT profile" PUT "$BASE_URL/api/hashes/users/1001" 200 '{"name":"Alice","email":"alice@example.com","age":"30"}'
+test_endpoint "Hash GET profile" GET "$BASE_URL/api/hashes/users/1001" 200
+test_endpoint "Hash GET field" GET "$BASE_URL/api/hashes/users/1001/name" 200
+test_endpoint "Hash PUT field" PUT "$BASE_URL/api/hashes/users/1001/email" 200 "newemail@example.com"
+test_endpoint "Hash DELETE field" DELETE "$BASE_URL/api/hashes/users/1001/email" 200
+test_endpoint "Hash DELETE profile" DELETE "$BASE_URL/api/hashes/users/1001" 200
 
-# Lists
-test_endpoint "List PUSH left" POST "$BASE_URL/api/lists/mylist?direction=left" 200 "item1"
-test_endpoint "List PUSH right" POST "$BASE_URL/api/lists/mylist?direction=right" 200 "item2"
-test_endpoint "List GET all" GET "$BASE_URL/api/lists/mylist" 200
-test_endpoint "List POP left" DELETE "$BASE_URL/api/lists/mylist?direction=left" 200
+# Lists (Task Queue)
+test_endpoint "Queue ENQUEUE" POST "$BASE_URL/api/queues/emails" 200 '{"type":"welcome","to":"alice@example.com"}'
+test_endpoint "Queue ENQUEUE 2" POST "$BASE_URL/api/queues/emails" 200 '{"type":"reset","to":"bob@example.com"}'
+test_endpoint "Queue PEEK" GET "$BASE_URL/api/queues/emails" 200
+test_endpoint "Queue LENGTH" GET "$BASE_URL/api/queues/emails/length" 200
+test_endpoint "Queue DEQUEUE" DELETE "$BASE_URL/api/queues/emails/next" 200
 
-# Sets
-test_endpoint "Set ADD" POST "$BASE_URL/api/sets/myset" 200 "member1"
-test_endpoint "Set GET all" GET "$BASE_URL/api/sets/myset" 200
-test_endpoint "Set ISMEMBER" GET "$BASE_URL/api/sets/myset/member/member1" 200
-test_endpoint "Set REMOVE" DELETE "$BASE_URL/api/sets/myset/member1" 200
+# Sets (Tags/Interests)
+test_endpoint "Tags ADD alice:java" POST "$BASE_URL/api/tags/alice" 200 "java"
+test_endpoint "Tags ADD alice:redis" POST "$BASE_URL/api/tags/alice" 200 "redis"
+test_endpoint "Tags ADD alice:spring" POST "$BASE_URL/api/tags/alice" 200 "spring"
+test_endpoint "Tags ADD bob:redis" POST "$BASE_URL/api/tags/bob" 200 "redis"
+test_endpoint "Tags ADD bob:python" POST "$BASE_URL/api/tags/bob" 200 "python"
+test_endpoint "Tags ADD bob:docker" POST "$BASE_URL/api/tags/bob" 200 "docker"
+test_endpoint "Tags GET alice" GET "$BASE_URL/api/tags/alice" 200
+test_endpoint "Tags HAS alice:java" GET "$BASE_URL/api/tags/alice/has/java" 200
+test_endpoint "Tags COMMON" GET "$BASE_URL/api/tags/alice/common/bob" 200
+test_endpoint "Tags UNIQUE" GET "$BASE_URL/api/tags/alice/unique/bob" 200
+test_endpoint "Tags UNION" GET "$BASE_URL/api/tags/alice/union/bob" 200
+test_endpoint "Tags COUNT" GET "$BASE_URL/api/tags/alice/count" 200
+test_endpoint "Tags REMOVE" DELETE "$BASE_URL/api/tags/alice/spring" 200
 
-# Sorted Sets
-test_endpoint "ZSet ADD" POST "$BASE_URL/api/sorted-sets/zset1?member=player1&score=100" 200
-test_endpoint "ZSet GET all" GET "$BASE_URL/api/sorted-sets/zset1" 200
-test_endpoint "ZSet GET score" GET "$BASE_URL/api/sorted-sets/zset1/score/player1" 200
-test_endpoint "ZSet GET range" GET "$BASE_URL/api/sorted-sets/zset1/range?start=0&end=-1" 200
-test_endpoint "ZSet DELETE" DELETE "$BASE_URL/api/sorted-sets/zset1/player1" 200
+# Sorted Sets (Task Scheduler)
+test_endpoint "Scheduler ADD (due now)" POST "$BASE_URL/api/scheduler/jobs?taskId=send-email&executeAt=1000000000" 200
+test_endpoint "Scheduler DELAY" POST "$BASE_URL/api/scheduler/jobs/delay?taskId=cleanup&delaySeconds=3600" 200
+test_endpoint "Scheduler GET all" GET "$BASE_URL/api/scheduler/jobs" 200
+test_endpoint "Scheduler GET due" GET "$BASE_URL/api/scheduler/jobs/due" 200
+test_endpoint "Scheduler POP next" DELETE "$BASE_URL/api/scheduler/jobs/next" 200
+test_endpoint "Scheduler COUNT" GET "$BASE_URL/api/scheduler/jobs/count" 200
+test_endpoint "Scheduler CANCEL" DELETE "$BASE_URL/api/scheduler/jobs/cleanup" 200
 
 # Cache
 test_endpoint "Cache GET (miss)" GET "$BASE_URL/api/cache/demo-key" 200
 test_endpoint "Cache GET (hit)" GET "$BASE_URL/api/cache/demo-key" 200
 test_endpoint "Cache EVICT" DELETE "$BASE_URL/api/cache/demo-key" 200
 
-# Sessions
-test_endpoint "Session PUT" PUT "$BASE_URL/api/sessions/sess1?attributeKey=user" 200 "john"
-test_endpoint "Session GET" GET "$BASE_URL/api/sessions/sess1" 200
-test_endpoint "Session DELETE" DELETE "$BASE_URL/api/sessions/sess1" 200
-test_endpoint "Session GET 404" GET "$BASE_URL/api/sessions/sess1" 404
+# Sessions (login/use/logout with sliding TTL)
+SESSION_ID=$(curl -s -X POST "$BASE_URL/api/sessions" -H "Content-Type: application/json" -d '{"username":"alice","role":"admin"}' | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
+if [ -n "$SESSION_ID" ]; then
+  echo "PASS: Session CREATE (got $SESSION_ID)"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL: Session CREATE (no sessionId returned)"
+  FAIL=$((FAIL + 1))
+  SESSION_ID="fake-id"
+fi
+test_endpoint "Session GET" GET "$BASE_URL/api/sessions/$SESSION_ID" 200
+test_endpoint "Session UPDATE" PUT "$BASE_URL/api/sessions/$SESSION_ID" 200 '{"theme":"dark"}'
+test_endpoint "Session DESTROY" DELETE "$BASE_URL/api/sessions/$SESSION_ID" 200
+test_endpoint "Session GET 404" GET "$BASE_URL/api/sessions/$SESSION_ID" 404
 
-# Pub/Sub
-test_endpoint "PubSub PUBLISH" POST "$BASE_URL/api/pubsub/news" 200 "hello world"
-test_endpoint "PubSub GET messages" GET "$BASE_URL/api/pubsub/news" 200
-test_endpoint "PubSub CLEAR" DELETE "$BASE_URL/api/pubsub/news" 200
+# Pub/Sub (Domain Events)
+test_endpoint "Events PUBLISH" POST "$BASE_URL/api/events/order.created" 200 '{"orderId":"123","total":59.99,"customer":"alice"}'
+sleep 1
+test_endpoint "Events GET" GET "$BASE_URL/api/events/order.created" 200
+test_endpoint "Events LIST types" GET "$BASE_URL/api/events" 200
+test_endpoint "Events CLEAR" DELETE "$BASE_URL/api/events/order.created" 200
 
 # Rate Limiting
 test_endpoint "Rate Limit CHECK" GET "$BASE_URL/api/rate-limit/check/e2e-client" 200

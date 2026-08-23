@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -9,13 +10,21 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.service.ListService;
 
+/**
+ * Demonstrates Redis List operations through a task queue use case.
+ * Producers enqueue tasks (RPUSH), consumers dequeue them (LPOP) — FIFO order.
+ *
+ * This uses the same underlying Redis list commands (RPUSH/LPOP) that
+ * Sidekiq (Ruby) and BullMQ (Node.js) are built on for job processing.
+ * Production frameworks add blocking pops (BRPOP) and reliability tracking,
+ * but the fundamental data structure pattern is identical.
+ */
 @RestController
-@RequestMapping("/api/lists")
+@RequestMapping("/api/queues")
 public class ListController {
 
     private final ListService listService;
@@ -24,21 +33,39 @@ public class ListController {
         this.listService = listService;
     }
 
-    @PostMapping("/{key}")
-    public ResponseEntity<Void> push(@PathVariable String key, @RequestBody String value,
-                                     @RequestParam(defaultValue = "left") String direction) {
-        listService.push(key, value, direction);
+    /**
+     * Enqueue a task (producer).
+     * Example: POST /api/queues/emails {"type":"welcome","to":"alice@example.com"}
+     */
+    @PostMapping("/{queueName}")
+    public ResponseEntity<Void> enqueue(@PathVariable String queueName,
+                                        @RequestBody Map<String, Object> task) {
+        listService.enqueue(queueName, task);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{key}")
-    public ResponseEntity<List<Object>> getAll(@PathVariable String key) {
-        return ResponseEntity.ok(listService.getAll(key));
+    /**
+     * Dequeue the next task (consumer). Returns the task or null if empty.
+     */
+    @DeleteMapping("/{queueName}/next")
+    public ResponseEntity<Object> dequeue(@PathVariable String queueName) {
+        Object task = listService.dequeue(queueName);
+        return ResponseEntity.ok(task);
     }
 
-    @DeleteMapping("/{key}")
-    public ResponseEntity<Object> pop(@PathVariable String key,
-                                      @RequestParam(defaultValue = "left") String direction) {
-        return ResponseEntity.ok(listService.pop(key, direction));
+    /**
+     * Peek at all pending tasks without consuming them.
+     */
+    @GetMapping("/{queueName}")
+    public ResponseEntity<List<Object>> peek(@PathVariable String queueName) {
+        return ResponseEntity.ok(listService.peek(queueName));
+    }
+
+    /**
+     * Get queue depth (number of pending tasks).
+     */
+    @GetMapping("/{queueName}/length")
+    public ResponseEntity<Map<String, Long>> length(@PathVariable String queueName) {
+        return ResponseEntity.ok(Map.of("length", listService.length(queueName)));
     }
 }

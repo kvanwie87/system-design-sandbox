@@ -25,7 +25,7 @@ public class RateLimitService {
     }
 
     public RateLimitInfo checkRateLimit(String clientId) {
-        String key = "rate_limit:" + clientId;
+        String key = "ratelimit:" + clientId;
         Long count = redisTemplate.opsForValue().increment(key);
         if (count != null && count == 1) {
             redisTemplate.expire(key, Duration.ofSeconds(windowSeconds));

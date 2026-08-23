@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -9,30 +10,42 @@ import org.springframework.stereotype.Service;
 @Service
 public class ListService {
 
+    private static final String PREFIX = "queue:";
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     public ListService(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
-    public void push(String key, String value, String direction) {
-        if ("right".equalsIgnoreCase(direction)) {
-            redisTemplate.opsForList().rightPush(key, value);
-        } else {
-            redisTemplate.opsForList().leftPush(key, value);
-        }
+    /**
+     * Enqueue a task (RPUSH — adds to tail for FIFO processing).
+     */
+    public void enqueue(String queueName, Map<String, Object> task) {
+        redisTemplate.opsForList().rightPush(PREFIX + queueName, task);
     }
 
-    public List<Object> getAll(String key) {
-        List<Object> result = redisTemplate.opsForList().range(key, 0, -1);
+    /**
+     * Dequeue a task (LPOP — removes from head for FIFO processing).
+     * Returns null if the queue is empty.
+     */
+    public Object dequeue(String queueName) {
+        return redisTemplate.opsForList().leftPop(PREFIX + queueName);
+    }
+
+    /**
+     * Peek at all pending tasks without removing them (LRANGE 0 -1).
+     */
+    public List<Object> peek(String queueName) {
+        List<Object> result = redisTemplate.opsForList().range(PREFIX + queueName, 0, -1);
         return result != null ? result : Collections.emptyList();
     }
 
-    public Object pop(String key, String direction) {
-        if ("right".equalsIgnoreCase(direction)) {
-            return redisTemplate.opsForList().rightPop(key);
-        } else {
-            return redisTemplate.opsForList().leftPop(key);
-        }
+    /**
+     * Get the current queue depth (LLEN).
+     */
+    public long length(String queueName) {
+        Long size = redisTemplate.opsForList().size(PREFIX + queueName);
+        return size != null ? size : 0;
     }
 }
