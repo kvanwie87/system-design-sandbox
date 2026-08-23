@@ -228,6 +228,7 @@ This PoC covers the most common Redis use cases, but Redis offers additional cap
 | **HyperLogLog** | Probabilistic cardinality estimation (~0.81% error) | Counting unique visitors at massive scale with fixed 12KB memory |
 | **Bitmaps** | Bit-level operations on strings | Daily active users, feature usage tracking, bloom filters |
 | **Lua Scripting** | Server-side scripts for custom atomic operations | Complex conditional logic that must execute atomically |
+| **Cluster** | Data partitioning across nodes via 16,384 hash slots, hash tags for co-location | Horizontal scaling, high availability, multi-TB datasets |
 
 See [about-redis.md](about-redis.md) for more detail on each of these.
 
