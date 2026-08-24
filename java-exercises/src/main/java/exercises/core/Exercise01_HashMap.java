@@ -1,4 +1,4 @@
-package exercises.tier1;
+package exercises.core;
 
 import java.util.HashMap;
 import java.util.Map;
