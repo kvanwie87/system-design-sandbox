@@ -1,10 +1,12 @@
 package com.example.webhookclient.service;
 
+import com.example.webhookclient.auth.TokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -27,12 +29,15 @@ public class WebhookRegistrationService implements ApplicationRunner {
     private final String serverUrl;
     private final int serverPort;
     private final RestClient restClient;
+    private final TokenProvider tokenProvider;
 
     public WebhookRegistrationService(
             @Value("${webhook.server.url}") String serverUrl,
-            @Value("${server.port}") int serverPort) {
+            @Value("${server.port}") int serverPort,
+            TokenProvider tokenProvider) {
         this.serverUrl = serverUrl;
         this.serverPort = serverPort;
+        this.tokenProvider = tokenProvider;
         this.restClient = RestClient.create();
     }
 
@@ -49,9 +54,19 @@ public class WebhookRegistrationService implements ApplicationRunner {
         log.info("Registering with webhook server at {}", serverUrl);
 
         try {
-            restClient.post()
+            RestClient.RequestBodySpec request = restClient.post()
                     .uri(registrationEndpoint)
-                    .header("Content-Type", "application/json")
+                    .header("Content-Type", "application/json");
+
+            // Attach a Bearer JWT when auth is enabled (spring-security / hand-rolled).
+            tokenProvider.bearerToken().ifPresentOrElse(
+                    token -> {
+                        request.header(HttpHeaders.AUTHORIZATION, token);
+                        log.info("Attaching Bearer JWT to registration request to {}", registrationEndpoint);
+                    },
+                    () -> log.info("Sending registration request to {} without authentication", registrationEndpoint));
+
+            request
                     .body(Map.of("callbackUrl", callbackUrl))
                     .retrieve()
                     .toBodilessEntity();

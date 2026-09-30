@@ -5,7 +5,21 @@ spring:
 server:
   port: 8081
 
+logging:
+  level:
+    # Verbose auth logging so token minting is easy to follow in the console.
+    com.example.webhookclient.auth: DEBUG
+    com.example.webhookclient.service: DEBUG
+
 webhook:
   server:
     url: http://localhost:8080
   secret: my-super-secret-webhook-key-change-me
+  # When mode is not 'none', the client fetches a JWT from the server's token
+  # endpoint (client-credentials grant) and sends it as a Bearer token during
+  # registration. The signing secret lives only on the server.
+  auth:
+    mode: hand-rolled
+    token-url: http://localhost:8080/oauth/token
+    client-id: webhook-client
+    client-secret: webhook-client-secret-change-me

@@ -5,10 +5,34 @@ spring:
 server:
   port: 8080
 
+logging:
+  level:
+    # Verbose auth logging so token validation is easy to follow in the console.
+    com.example.webhookserver.auth: DEBUG
+
 webhook:
   event:
     interval: 5000
   secret: my-super-secret-webhook-key-change-me
+  # Authentication for the registration endpoint (POST /api/webhooks/register).
+  # mode options:
+  #   spring-security - validate the Bearer JWT via Spring's OAuth2 resource server
+  #   hand-rolled     - validate the Bearer JWT with a pure-JDK filter (JwtUtils)
+  #   none            - no authentication (endpoint open)
+  # The secret/issuer/audience are shared by both authenticated modes, so tokens
+  # are interchangeable between them and must match the client's settings.
+  auth:
+    mode: hand-rolled
+    # RS256: the server signs with the private key and verifies with the public key.
+    # (PoC only — a real system would never bundle the private key in resources.)
+    private-key-location: classpath:keys/private_key.pem
+    public-key-location: classpath:keys/public_key.pem
+    issuer: webhook-auth
+    audience: webhook-server
+    ttl-seconds: 300
+    # Client-credentials the token endpoint (POST /oauth/token) accepts.
+    client-id: webhook-client
+    client-secret: webhook-client-secret-change-me
   circuit-breaker:
     max-failures: 3
     degraded-timeout: 30000
