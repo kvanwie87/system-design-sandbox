@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Jakarta EE 10 web descriptor.
+
+    Servlets in this project are mapped via @WebServlet annotations, so this
+    file is intentionally near-empty. It's here so you can SEE the deployment
+    descriptor structure (WEB-INF/web.xml) and know where it lives. In the
+    2-day plan you just need to know this exists; annotations do the mapping.
+-->
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                             https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+
+    <display-name>servlet-prep</display-name>
+
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+
+</web-app>
