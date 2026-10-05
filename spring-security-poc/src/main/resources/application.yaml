@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: demo
+  profiles:
+    # Active security profile.
+    # Options: formlogin | permitall | basic | basicwithcsrf | stateless
+    # Override at launch, e.g.: --spring.profiles.active=permitall
+    active: formlogin
+  # NOTE: Users now come from the H2 database via DatabaseUserDetailsService,
+  # which overrides Spring Boot's default single user. The old
+  # spring.security.user.* properties no longer have any effect, so they are
+  # removed. Seeded credentials (see UserDataSeeder):
+  #   user  / password  (role USER)
+  #   admin / admin      (roles ADMIN, USER)
+
+  # In-memory H2 database. Schema is created from the JPA entities on startup
+  # and discarded on shutdown.
+  datasource:
+    url: jdbc:h2:mem:demo
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop   # recreate schema each run (fine for a sandbox)
+    open-in-view: false
+  # H2 web console at http://localhost:8080/h2-console (JDBC URL: jdbc:h2:mem:demo).
+  # Note: endpoint access still depends on the active security profile.
+  h2:
+    console:
+      enabled: true
