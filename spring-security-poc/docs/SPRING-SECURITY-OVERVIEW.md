@@ -209,6 +209,7 @@ with `@Profile(...)`, so only the matching one is loaded into the context.
 | `basic` | `BasicAuthSecurityConfig` | All requests require authentication via HTTP Basic (CSRF disabled). Good for `curl`/API testing. |
 | `basicwithcsrf` | `BasicWithCsrfSecurityConfig` | Like `basic` but CSRF stays ON. POSTs need a token; demonstrates CSRF behavior. |
 | `stateless` | `StatelessSecurityConfig` | HTTP Basic with `SessionCreationPolicy.STATELESS` — no session, no `JSESSIONID`. Mirrors token/JWT API setup. |
+| `jwt` | `JwtSecurityConfig` | Stateless RS256 bearer tokens. `POST /login` issues a signed JWT; protected endpoints need `Authorization: Bearer <token>`. See [`JWT-OVERVIEW.md`](./JWT-OVERVIEW.md). |
 
 Example (`permitall`):
 
@@ -233,7 +234,7 @@ The default is set in `application.yaml`:
 ```yaml
 spring:
   profiles:
-    active: formlogin   # options: formlogin | permitall | basic | basicwithcsrf | stateless
+    active: formlogin   # options: formlogin | permitall | basic | basicwithcsrf | stateless | jwt
 ```
 
 Override it per run without editing files:
@@ -256,15 +257,19 @@ java -jar app.jar --spring.profiles.active=permitall
 - **`permitall`** → `/hello` returns `Hello, World!` immediately, no login.
 - **`basic`** → `/hello` returns `401` without credentials; `curl -u user:password`
   (the `spring.security.user` values) returns `Hello, World!`.
-- **`basicwithcsrf`** → `GET /hello` with creds works, but `POST /echo` with creds
-  and no CSRF token returns `401` (a CSRF denial on this Basic-only chain is
-  handled by the Basic auth entry point, so it surfaces as 401, not 403). Fetch a
-  token from `GET /csrf` and send its `token` value in the `X-XSRF-TOKEN` header
-  to make the POST succeed.
+- **`basicwithcsrf`** → `GET /hello` with creds works, but `POST /echo` without a
+  CSRF token returns `403` (CSRF access denied — this is checked before/independent
+  of authentication, so it's `403` even with valid creds). Fetch a token from
+  `GET /csrf` and send its `token` value in the `X-XSRF-TOKEN` header to make the
+  POST succeed.
 - **`stateless`** → `GET /hello` returns `401` without credentials and
   `Hello, World!` with `curl -u user:password`. Unlike the other authenticated
   profiles, a successful response sets **no `JSESSIONID` cookie** — nothing is
   remembered between requests.
+- **`jwt`** → `GET /hello` with no token returns `401`. `POST /login` with
+  `{"username","password"}` returns a signed RS256 token; sending it as
+  `Authorization: Bearer <token>` returns `Hello, World!`. A tampered or expired
+  token is rejected (`401`). No session is created.
 
 > Keep exactly **one** security profile active at a time. If none is active,
 > you fall back to Spring Boot's secure-by-default auto-configuration. To add
@@ -450,8 +455,9 @@ http.csrf(csrf -> csrf.disable()); // only for stateless, token-based APIs
 | `formlogin` | **On** (default) | Session/cookie based; the login form carries the token. |
 | `permitall` | On (default) | No auth, but the default protection is left untouched. |
 | `basic` | **Off** | HTTP Basic is used by non-browser clients that send credentials on every request, so there's no ambient-cookie risk to protect against. This is why `curl -u` works without a token. |
-| `basicwithcsrf` | **On** | Same HTTP Basic auth as `basic`, but CSRF is left enabled to demonstrate the effect. A `POST` without a token gets `401` (CSRF denial handled by the Basic auth entry point). Uses `CookieCsrfTokenRepository`; `GET /csrf` returns the token to send in the `X-XSRF-TOKEN` header. Note: the token from `/csrf` is XOR-encoded and differs from the raw `XSRF-TOKEN` cookie value — send the `/csrf` value. |
+| `basicwithcsrf` | **On** | Same HTTP Basic auth as `basic`, but CSRF is left enabled to demonstrate the effect. A `POST` without a token gets `403` (CSRF access denied). Uses `CookieCsrfTokenRepository`; `GET /csrf` returns the token to send in the `X-XSRF-TOKEN` header. Note: the token from `/csrf` is XOR-encoded and differs from the raw `XSRF-TOKEN` cookie value — send the `/csrf` value. |
 | `stateless` | **Off** | No session/cookie exists for a cross-site request to ride on, so CSRF protection is unnecessary. Credentials are sent explicitly on every request. |
+| `jwt` | **Off** | The token is sent in the `Authorization` header, which the browser never attaches automatically, so there is no ambient-credential CSRF vector. |
 
 See `BasicAuthSecurityConfig` for the `csrf(csrf -> csrf.disable())` call and the
 reasoning in its Javadoc.
@@ -472,7 +478,7 @@ Content was rephrased for compliance with licensing restrictions.
 - [ ] In-memory users and roles (using DB-backed users instead)
 - [ ] Method-level security (`@PreAuthorize`)
 - [ ] Role-based authorization (`hasRole`) using the seeded `USER`/`ADMIN`
-- [ ] Stateless auth with JWT / OAuth2 resource server (`stateless` profile sets the groundwork)
+- [x] Stateless auth with JWT / OAuth2 resource server (`jwt` profile — RS256, `POST /login`)
 - [ ] Testing with `spring-security-test` (`@WithMockUser`)
 
 ---

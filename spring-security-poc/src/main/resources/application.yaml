@@ -3,7 +3,7 @@ spring:
     name: demo
   profiles:
     # Active security profile.
-    # Options: formlogin | permitall | basic | basicwithcsrf | stateless
+    # Options: formlogin | permitall | basic | basicwithcsrf | stateless | jwt
     # Override at launch, e.g.: --spring.profiles.active=permitall
     active: formlogin
   # NOTE: Users now come from the H2 database via DatabaseUserDetailsService,

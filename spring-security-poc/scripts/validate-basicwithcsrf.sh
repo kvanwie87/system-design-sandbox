@@ -3,14 +3,17 @@
 #
 # Expectations:
 #   1. GET /hello with valid creds           -> 200 (GETs are not CSRF-checked)
-#   2. POST /echo with valid creds, NO token  -> 401 (see note below)
+#   2. POST /echo with valid creds, NO token  -> 403 (CSRF access denied)
 #   3. POST /echo with valid creds + token    -> 200 (token accepted)
 #
 # Notes on the status code and the token value (both verified against a live
 # server):
-#   - A CSRF failure on this chain surfaces as 401, not 403. The filter chain
-#     only has HTTP Basic configured, so a denied request is handled by the
-#     BasicAuthenticationEntryPoint, which responds 401.
+#   - A CSRF failure returns 403 (an AccessDeniedException — the request is
+#     authenticated but not authorized to perform the state-changing action
+#     without a token). Note: with no credentials at all this is still 403,
+#     because CSRF is evaluated before authentication. (An earlier version of
+#     this profile returned 401 only because the /error dispatch was secured and
+#     got re-challenged; now that /error is permitted, the natural 403 shows.)
 #   - Spring Security 6/7 returns an XOR-ENCODED token from CsrfToken.getToken()
 #     (what GET /csrf serves in its JSON "token" field). The raw XSRF-TOKEN
 #     cookie holds a DIFFERENT value. The header must carry the ENCODED token
@@ -40,14 +43,14 @@ else
 	pass=1
 fi
 
-# --- Check 2: POST /echo with creds, no token -> 401 ------------------------
-echo "Check 2: POST ${ECHO_URL} with creds but NO token -> expect 401"
+# --- Check 2: POST /echo with creds, no token -> 403 ------------------------
+echo "Check 2: POST ${ECHO_URL} with creds but NO token -> expect 403"
 status="$(curl -s -o /dev/null -w '%{http_code}' "${AUTH[@]}" \
 	-X POST -H 'Content-Type: text/plain' --data 'hello' "${ECHO_URL}")"
-if [ "${status}" = "401" ]; then
-	echo "  PASS: got 401 (CSRF blocked the tokenless POST)"
+if [ "${status}" = "403" ]; then
+	echo "  PASS: got 403 (CSRF blocked the tokenless POST)"
 else
-	echo "  FAIL: expected 401, got ${status}" >&2
+	echo "  FAIL: expected 403, got ${status}" >&2
 	pass=1
 fi
 

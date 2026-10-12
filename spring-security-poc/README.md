@@ -23,6 +23,7 @@ Defined in `build.gradle`:
 | `spring-boot-starter` | Core Spring Boot |
 | `spring-boot-starter-web` | Web/MVC — provides endpoints for Security to protect |
 | `spring-boot-starter-security` | Spring Security framework |
+| `spring-boot-starter-oauth2-resource-server` | JWT validation (RS256) for the `jwt` profile |
 | `spring-boot-starter-data-jpa` | JPA/Hibernate — persistence for database-backed users |
 | `spring-boot-starter-validation` | Bean Validation (`@Valid`) for request DTOs |
 | `com.h2database:h2` | In-memory H2 database (runtime) |
@@ -53,8 +54,8 @@ export JAVA_HOME="/c/sdkman/candidates/java/21.0.9-amzn"
 ```
 
 The app runs with a selectable **security profile** (default `formlogin`). See
-`SPRING-SECURITY-OVERVIEW.md` and `scripts/README.md` for the full list and how
-to switch, or just use the helper scripts:
+`docs/SPRING-SECURITY-OVERVIEW.md` and `scripts/README.md` for the full list and
+how to switch, or just use the helper scripts:
 
 ```bash
 ./scripts/run-basic.sh        # HTTP Basic — easiest for curl

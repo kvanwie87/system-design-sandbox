@@ -25,6 +25,7 @@ the foreground) — use a separate terminal to run the validation scripts.
 | `run-basic.sh` | `basic` | All endpoints require HTTP Basic auth (good for `curl`). |
 | `run-basicwithcsrf.sh` | `basicwithcsrf` | HTTP Basic auth with CSRF left on; POSTs need a token. |
 | `run-stateless.sh` | `stateless` | HTTP Basic with no session (`STATELESS`); no `JSESSIONID`. |
+| `run-jwt.sh` | `jwt` | Stateless RS256 bearer tokens; `POST /login` for a token. |
 
 ```bash
 ./scripts/run-formlogin.sh
@@ -32,6 +33,7 @@ the foreground) — use a separate terminal to run the validation scripts.
 ./scripts/run-basic.sh
 ./scripts/run-basicwithcsrf.sh
 ./scripts/run-stateless.sh
+./scripts/run-jwt.sh
 ```
 
 ## Validation scripts
@@ -44,8 +46,9 @@ profile. Each exits `0` on success, non-zero on failure.
 | `validate-permitall.sh` | `permitall` | `GET /hello` returns `200 Hello, World!` with no credentials. |
 | `validate-formlogin.sh` | `formlogin` | Unauthenticated `GET /hello` is redirected (302) to `/login`; a full CSRF-aware form login then reaches `/hello`. |
 | `validate-basic.sh` | `basic` | `GET /hello` returns `401` with no/wrong credentials and `200 Hello, World!` with valid HTTP Basic credentials. |
-| `validate-basicwithcsrf.sh` | `basicwithcsrf` | `GET /hello` with creds returns `200`; `POST /echo` with creds but no CSRF token returns `401` (CSRF denial surfaces via the Basic auth entry point); `POST /echo` with a token (fetched from `/csrf`) returns `200`. |
+| `validate-basicwithcsrf.sh` | `basicwithcsrf` | `GET /hello` with creds returns `200`; `POST /echo` with no CSRF token returns `403` (CSRF access denied); `POST /echo` with a token (fetched from `/csrf`) returns `200`. |
 | `validate-stateless.sh` | `stateless` | `GET /hello` returns `401` with no creds and `200 Hello, World!` with valid creds; a successful response sets **no `JSESSIONID`** cookie. |
+| `validate-jwt.sh` | `jwt` | No token → `401`; `POST /login` → `200` + a JWT; `Authorization: Bearer <token>` → `200`; wrong password → `401`; tampered token → `401`. |
 
 ```bash
 # terminal 1
@@ -80,6 +83,13 @@ profile. Each exits `0` on success, non-zero on failure.
 ./scripts/run-stateless.sh
 # terminal 2
 ./scripts/validate-stateless.sh
+```
+
+```bash
+# terminal 1
+./scripts/run-jwt.sh
+# terminal 2
+./scripts/validate-jwt.sh
 ```
 
 ## Configuration
